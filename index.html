@@ -255,6 +255,40 @@ p{margin:0 0 14px}
 .chip.is-active{background:var(--amber);border-color:var(--amber);color:#191408;font-weight:500}
 .count{font-family:var(--mono);font-size:12px;color:var(--ash-dim);letter-spacing:.08em}
 
+.quiz{background:var(--ink-800);border:1px solid var(--line-soft);border-radius:var(--r);
+  padding:clamp(20px,3.2vw,34px);max-width:760px;box-shadow:var(--shadow)}
+.quiz__bar{height:3px;background:var(--ink-600);border-radius:2px;overflow:hidden;margin-bottom:20px}
+.quiz__bar span{display:block;height:100%;background:linear-gradient(90deg,var(--amber-deep),var(--amber));
+  transition:width .35s cubic-bezier(.3,.7,.3,1)}
+.quiz__step{font-family:var(--mono);font-size:10.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--amber-dim)}
+.quiz__q{font-size:clamp(19px,2.6vw,26px);margin:10px 0 22px;text-transform:none;letter-spacing:.02em;line-height:1.25}
+.quiz__opts{display:grid;gap:10px}
+.quiz__opt{text-align:left;background:var(--ink-700);border:1px solid var(--line);border-radius:10px;
+  padding:15px 18px;cursor:pointer;font-size:15px;color:#d9d5c9;transition:.18s}
+.quiz__opt:hover{border-color:var(--amber-dim);background:var(--ink-600);transform:translateX(3px);color:var(--bone)}
+.quiz__back{margin-top:18px;background:none;border:none;color:var(--ash);font-family:var(--mono);
+  font-size:12px;letter-spacing:.1em;cursor:pointer;padding:0}
+.quiz__back:hover{color:var(--amber)}
+
+.picks{display:grid;gap:14px}
+.pick{display:grid;grid-template-columns:190px 1fr;gap:0;background:var(--ink-700);
+  border:1px solid var(--line-soft);border-radius:var(--r);overflow:hidden;transition:.25s}
+.pick:hover{border-color:var(--amber-deep);transform:translateY(-2px)}
+.pick__media{background:#12150f}
+.pick__media img{width:100%;height:100%;object-fit:cover;min-height:150px}
+.pick__body{padding:16px 18px}
+.pick__match{height:4px;background:var(--ink-600);border-radius:2px;overflow:hidden;margin-bottom:7px}
+.pick__match span{display:block;height:100%;background:linear-gradient(90deg,var(--amber-deep),var(--amber))}
+.pick__pct{font-family:var(--mono);font-size:11px;letter-spacing:.12em;color:var(--amber)}
+.pick__name{font-family:var(--display);font-size:19px;letter-spacing:.05em;text-transform:uppercase;margin-top:6px}
+.pick__sci{font-family:var(--serif);font-style:italic;color:var(--amber);font-size:15px;margin-bottom:4px}
+.pick__why,.pick__warn{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:4px}
+.pick__why li,.pick__warn li{font-size:13.5px;color:#c6c2b6;padding-left:18px;position:relative}
+.pick__why li::before{content:"✓";position:absolute;left:0;color:var(--ok)}
+.pick__warn li{color:var(--ash)}
+.pick__warn li::before{content:"!";position:absolute;left:2px;color:var(--warn);font-family:var(--mono)}
+@media (max-width:620px){.pick{grid-template-columns:1fr}.pick__media img{min-height:180px}}
+
 .empty{border:1px dashed var(--line);border-radius:var(--r);padding:44px 24px;text-align:center;color:var(--ash)}
 .empty strong{display:block;font-family:var(--display);text-transform:uppercase;letter-spacing:.1em;color:var(--bone);margin-bottom:8px}
 
@@ -413,6 +447,7 @@ p{margin:0 0 14px}
     <nav class="nav" id="nav">
       <a href="#/">Главная</a>
       <a href="#/catalog">Каталог</a>
+      <a href="#/test">Подбор</a>
       <a href="#/exposition">Экспозиция</a>
       <a href="#/breeding">Разведение</a>
       <a href="#/shops">Магазины</a>
@@ -440,6 +475,7 @@ p{margin:0 0 14px}
       </div>
       <div class="foot__links">
         <a href="#/catalog">Каталог</a>
+        <a href="#/test">Подбор вида</a>
         <a href="#/exposition">Экспозиция</a>
         <a href="#/breeding">Разведение</a>
         <a href="#/shops">Магазины</a>
@@ -1258,7 +1294,10 @@ function pageHome(){
       <h2>Сейчас в витринах</h2>
       <p class="lead" style="margin:14px 0 26px">Каталог обновляется по мере поступления. Наличие лучше уточнять — живые животные быстро находят новый дом.</p>
       <div class="cards">${picks.map(cardHTML).join('')}</div>
-      <p style="margin-top:26px"><a class="btn btn--quiet" href="#/catalog">Весь каталог →</a></p>
+      <p style="margin-top:26px;display:flex;gap:10px;flex-wrap:wrap">
+        <a class="btn btn--quiet" href="#/catalog">Весь каталог →</a>
+        <a class="btn btn--ghost" href="#/test">Не знаете, с кого начать? Пройдите подбор</a>
+      </p>
     </div>
   </section>
 
@@ -1272,6 +1311,229 @@ function pageHome(){
       <p><a class="btn btn--primary" href="#/shops">Адреса и карта</a></p>
     </div>
   </section>`;
+}
+
+
+/* =========================================================================
+   ПОДБОР ВИДА. 15 вопросов -> профиль -> сверка с TRAITS каждого вида.
+   Чтобы добавить вид в подбор — допишите строку в TRAITS с его id из ITEMS.
+   Поля: lvl из ITEMS.level; size 1-4; venom 0-2; live 0-2 (нужен живой корм);
+   climate 0-2 (нужен контроль климата); handle 0-2 (терпит руки);
+   night 0/1; grow 0-2 (растить долго); showy 0-2; alone 0-2 (переносит отъезд);
+   life 1-3 (сколько живёт); space 1-4; biotope 0/1; breed 0/1.
+   ========================================================================= */
+const TRAITS = {
+  'lamprima-biggest':      { size:2, venom:0, live:0, climate:1, handle:1, night:0, grow:0, showy:2, alone:1, life:1, space:1, biotope:0, breed:0 },
+  'dynastes-hercules-l3':  { size:3, venom:0, live:0, climate:1, handle:1, night:0, grow:2, showy:1, alone:2, life:2, space:1, biotope:0, breed:1 },
+  'dynastes-hercules':     { size:4, venom:0, live:0, climate:1, handle:1, night:1, grow:0, showy:2, alone:1, life:1, space:2, biotope:0, breed:0 },
+  'lucanus-cervus-l3':     { size:2, venom:0, live:0, climate:0, handle:1, night:0, grow:2, showy:1, alone:2, life:2, space:1, biotope:0, breed:1 },
+  'lucanus-cervus':        { size:3, venom:0, live:0, climate:0, handle:1, night:1, grow:0, showy:2, alone:1, life:1, space:1, biotope:0, breed:0 },
+  'oryctes-nasicornis':    { size:2, venom:0, live:0, climate:0, handle:1, night:1, grow:0, showy:1, alone:2, life:1, space:1, biotope:0, breed:0 },
+  'mecynorrhina-ugandensis':{size:3, venom:0, live:0, climate:1, handle:1, night:0, grow:0, showy:2, alone:1, life:1, space:2, biotope:0, breed:0 },
+  'idolomantis-pro':       { size:3, venom:0, live:2, climate:2, handle:1, night:0, grow:1, showy:2, alone:0, life:1, space:2, biotope:0, breed:1 },
+  'idolomantis-female':    { size:3, venom:0, live:2, climate:2, handle:1, night:0, grow:0, showy:2, alone:0, life:1, space:2, biotope:0, breed:0 },
+  'carabus-gigas':         { size:2, venom:1, live:2, climate:0, handle:0, night:1, grow:0, showy:1, alone:1, life:2, space:1, biotope:0, breed:0 },
+  'carabus-cancellatus':   { size:1, venom:1, live:1, climate:0, handle:0, night:1, grow:0, showy:1, alone:1, life:2, space:1, biotope:0, breed:0 },
+  'carabus-exaratus':      { size:1, venom:1, live:1, climate:0, handle:0, night:1, grow:0, showy:1, alone:1, life:2, space:1, biotope:0, breed:0 },
+  'tiger-beetles':         { size:1, venom:0, live:2, climate:2, handle:0, night:0, grow:0, showy:2, alone:0, life:1, space:2, biotope:0, breed:0 },
+  'scorpion-black':        { size:2, venom:2, live:1, climate:1, handle:0, night:1, grow:0, showy:2, alone:2, life:3, space:1, biotope:0, breed:0 },
+  'scolopendra-giant':     { size:3, venom:2, live:1, climate:1, handle:0, night:1, grow:0, showy:2, alone:1, life:3, space:2, biotope:0, breed:0 },
+  'python-amethystine':    { size:4, venom:0, live:0, climate:1, handle:1, night:1, grow:1, showy:2, alone:2, life:3, space:4, biotope:0, breed:0 },
+  'eco-forest':            { size:3, venom:0, live:0, climate:0, handle:0, night:0, grow:0, showy:2, alone:2, life:3, space:3, biotope:1, breed:1 },
+  'eco-desert':            { size:3, venom:0, live:0, climate:1, handle:0, night:1, grow:0, showy:2, alone:2, life:3, space:3, biotope:1, breed:0 },
+  'eco-stone':             { size:3, venom:0, live:0, climate:0, handle:0, night:1, grow:0, showy:1, alone:2, life:3, space:3, biotope:1, breed:0 }
+};
+
+const QUIZ = [
+  { q:'Какой у вас опыт с экзотическими животными?',
+    a:[['Никогда никого не держал',{exp:3}], ['Были кошка, рыбки, попугай',{exp:5}],
+       ['Держал насекомых или рептилий',{exp:8}], ['Занимаюсь этим давно и всерьёз',{exp:11}]] },
+  { q:'Сколько готовы потратить на само животное?',
+    a:[['До 1 000 ₽',{budget:1000}], ['1 000 — 10 000 ₽',{budget:10000}],
+       ['10 000 — 30 000 ₽',{budget:30000}], ['Цена не главное',{budget:999999}]] },
+  { q:'Сколько места готовы отдать?',
+    a:[['Полку — контейнер или небольшой куб',{space:1}], ['Отдельный террариум на столе',{space:2}],
+       ['Стеллаж или большой террариум',{space:3}], ['Отдельную комнату',{space:4}]] },
+  { q:'Есть ли в доме другие животные?',
+    a:[['Кошка или собака',{safety:1}], ['Других животных нет',{safety:0}]] },
+  { q:'Готовы держать дома живой корм — сверчков, тараканов?',
+    a:[['Нет, ни в каком виде',{live:0}], ['Покупать порцию и скормить',{live:1}],
+       ['Да, хоть отдельную культуру',{live:2}]] },
+  { q:'Когда вам удобнее наблюдать за животным?',
+    a:[['Днём',{when:'day'}], ['Вечером и ночью',{when:'night'}], ['Без разницы',{when:'any'}]] },
+  { q:'Хотите брать животное в руки?',
+    a:[['Нет, только смотреть',{handle:0}], ['Иногда, аккуратно',{handle:1}], ['Да, это для меня важно',{handle:2}]] },
+  { q:'Как относитесь к ядовитым видам?',
+    a:[['Исключено',{venom:0}], ['Можно, если аккуратно',{venom:1}], ['Меня это не пугает',{venom:2}]] },
+  { q:'Готовы следить за температурой и влажностью?',
+    a:[['Хочу комнатные условия и минимум приборов',{climate:0}], ['Поставлю гигрометр и грелку',{climate:1}],
+       ['Соберу полноценный климат-контроль',{climate:2}]] },
+  { q:'Готовы растить животное с личинки?',
+    a:[['Нет, хочу сразу взрослое',{grow:0}], ['Готов ждать несколько месяцев',{grow:1}],
+       ['Готов растить годами',{grow:2}]] },
+  { q:'Какой размер вам интереснее?',
+    a:[['Мелкое, до 4–5 см',{size:1}], ['Среднее',{size:2}], ['Крупное',{size:3}], ['Чем крупнее, тем лучше',{size:4}]] },
+  { q:'Что важнее — внешний эффект или простота ухода?',
+    a:[['Эффект: хочу, чтобы все ахнули',{showy:2}], ['Баланс',{showy:1}], ['Простота',{showy:0}]] },
+  { q:'Часто уезжаете из дома?',
+    a:[['Часто, на неделю и больше',{alone:2}], ['Иногда, на пару дней',{alone:1}], ['Почти всегда дома',{alone:0}]] },
+  { q:'Что интереснее наблюдать?',
+    a:[['Целый биотоп со множеством жизни',{focus:'biotope'}], ['Одно яркое животное',{focus:'single'}],
+       ['Развитие и разведение',{focus:'breed'}]] },
+  { q:'На какой срок рассчитываете?',
+    a:[['Пусть живёт месяцы — потом возьму другого',{life:1}], ['Год-два',{life:2}],
+       ['Много лет, это надолго',{life:3}]] }
+];
+
+function scoreItem(it, pr){
+  const t = TRAITS[it.id]; if(!t) return null;
+  const lvl = it.level || 5;
+  let s = 0; const why = [], warn = [];
+
+  if(lvl > pr.exp){ s -= (lvl - pr.exp) * 7; warn.push(`сложность ${lvl}/11 выше вашего опыта`); }
+  else { s += 6 - Math.abs(pr.exp - lvl) * 0.4; if(lvl >= pr.exp - 2) why.push(`сложность ${lvl}/11 — как раз по опыту`); }
+
+  if(it.price != null){
+    if(it.price > pr.budget){ s -= 26; warn.push('дороже вашего бюджета'); }
+    else { s += 4; }
+  }
+
+  if(t.space > pr.space){ s -= 9 * (t.space - pr.space); warn.push('нужно больше места'); }
+  else if(t.space === pr.space) { s += 3; }
+
+  if(pr.safety === 1 && t.venom === 2){ s -= 12; warn.push('держать отдельно от кошки или собаки'); }
+
+  if(t.venom > pr.venom){ s -= 16; warn.push('вид с болезненным укусом'); }
+  else if(t.venom > 0 && pr.venom === 2){ s += 5; }
+
+  if(t.live > pr.live){ s -= 11 * (t.live - pr.live); warn.push('нужен живой корм'); }
+  else if(t.live === 0){ s += 4; if(pr.live === 0) why.push('живой корм не нужен'); }
+
+  if(pr.when === 'day'  && t.night){ s -= 6; }
+  if(pr.when === 'night'&& !t.night){ s -= 3; }
+  if((pr.when === 'day' && !t.night) || (pr.when === 'night' && t.night)){ s += 5; why.push(pr.when === 'day' ? 'активен днём' : 'активен вечером и ночью'); }
+
+  if(pr.handle > t.handle){ s -= 7 * (pr.handle - t.handle); warn.push('брать в руки не стоит'); }
+  else if(pr.handle > 0 && t.handle >= pr.handle){ s += 3; why.push('спокойно переносит аккуратный контакт'); }
+
+  if(t.climate > pr.climate){ s -= 10 * (t.climate - pr.climate); warn.push('требует режима по влажности и температуре'); }
+  else if(t.climate === 0){ s += 4; if(pr.climate === 0) why.push('живёт при комнатных условиях'); }
+
+  if(t.grow > pr.grow){ s -= 13 * (t.grow - pr.grow); warn.push('это личинка, растить долго'); }
+  else if(t.grow === pr.grow && pr.grow > 0){ s += 8; why.push('можно вырастить с личинки'); }
+
+  s += 5 - Math.abs(t.size - pr.size) * 3;
+  if(t.size === pr.size) why.push('подходит по размеру');
+
+  s += 4 - Math.abs(t.showy - pr.showy) * 2.5;
+  if(t.showy === 2 && pr.showy === 2) why.push('выглядит эффектно');
+
+  if(pr.alone > t.alone){ s -= 8 * (pr.alone - t.alone); warn.push('не оставить надолго без присмотра'); }
+  else if(pr.alone > 0 && t.alone >= 2){ s += 4; why.push('спокойно переносит ваш отъезд'); }
+
+  s += 4 - Math.abs(t.life - pr.life) * 2.5;
+
+  if(pr.focus === 'biotope'){ t.biotope ? (s += 14, why.push('это целый биотоп, а не одно животное')) : s -= 5; }
+  if(pr.focus === 'breed'){   t.breed   ? (s += 14, why.push('интересен по стадиям развития')) : s -= 3; }
+  if(pr.focus === 'single'){  t.biotope ? s -= 7 : (s += 5); }
+
+  return { it, s, why: why.slice(0,3), warn: warn.slice(0,2) };
+}
+
+let quizState = { i:0, answers:[] };
+
+function pageQuiz(){
+  return `
+  <section class="sec" style="padding-top:calc(var(--head-h) + 40px)">
+    <div class="wrap">
+      <div class="eyebrow">Подбор</div>
+      <h2>Кто вам подойдёт</h2>
+      <p class="lead" style="margin:16px 0 30px">Пятнадцать вопросов об условиях, времени и готовности возиться.
+        В конце — от одного до трёх видов из нашего каталога, а не абстрактный совет.
+        Это подсказка, а не диагноз: окончательно решаем на месте, вместе с сотрудником.</p>
+      <div id="quizBox"></div>
+    </div>
+  </section>`;
+}
+
+function initQuiz(){
+  quizState = { i:0, answers:[] };
+  renderQuiz();
+}
+
+function renderQuiz(){
+  const box = $('#quizBox'); if(!box) return;
+  const n = QUIZ.length, i = quizState.i;
+
+  if(i >= n){ renderQuizResult(box); return; }
+
+  const q = QUIZ[i];
+  box.innerHTML = `
+    <div class="quiz rise is-in">
+      <div class="quiz__bar"><span style="width:${(i/n*100).toFixed(1)}%"></span></div>
+      <div class="quiz__step">Вопрос ${i+1} из ${n}</div>
+      <h3 class="quiz__q">${esc(q.q)}</h3>
+      <div class="quiz__opts">
+        ${q.a.map((o,k)=>`<button class="quiz__opt" data-k="${k}">${esc(o[0])}</button>`).join('')}
+      </div>
+      ${i>0 ? `<button class="quiz__back" data-back="1">← назад</button>`:''}
+    </div>`;
+
+  box.querySelectorAll('.quiz__opt').forEach(b=>b.addEventListener('click', ()=>{
+    quizState.answers[i] = QUIZ[i].a[+b.dataset.k][1];
+    quizState.i++;
+    renderQuiz();
+  }));
+  const back = box.querySelector('[data-back]');
+  if(back) back.addEventListener('click', ()=>{ quizState.i--; renderQuiz(); });
+}
+
+function renderQuizResult(box){
+  const pr = Object.assign({
+    exp:5, budget:30000, space:2, safety:0, live:1, when:'any',
+    handle:1, venom:1, climate:1, grow:0, size:2, showy:1, alone:1, life:2, focus:'single'
+  }, ...quizState.answers);
+
+  const ranked = ITEMS.map(it=>scoreItem(it, pr)).filter(Boolean).sort((a,b)=>b.s-a.s);
+  const best = ranked[0];
+  const picks = ranked.filter((r,k)=> k===0 || (r.s > best.s - 13 && k < 3));
+  const pct = r => Math.max(12, Math.min(99, Math.round(52 + r.s * 1.15)));
+
+  box.innerHTML = `
+    <div class="quiz rise is-in">
+      <div class="quiz__bar"><span style="width:100%"></span></div>
+      <div class="quiz__step">Результат</div>
+      <h3 class="quiz__q" style="margin-bottom:6px">${picks.length===1 ? 'Вам подойдёт' : `Вам подойдут: ${picks.length} вида`}</h3>
+      <p class="muted" style="font-size:14px;margin-bottom:22px">Совпадение считается по вашим ответам:
+        опыт, место, бюджет, корм, климат и терпение.</p>
+
+      <div class="picks">
+        ${picks.map(r=>`
+          <a class="pick" href="#/item/${r.it.id}">
+            <div class="pick__media">${photo(r.it.image, r.it.title, r.it.category)}</div>
+            <div class="pick__body">
+              <div class="pick__match"><span style="width:${pct(r)}%"></span></div>
+              <div class="pick__pct">${pct(r)}% совпадение</div>
+              <div class="pick__name">${esc(r.it.title)}</div>
+              ${r.it.sci ? `<div class="pick__sci">${esc(r.it.sci)}</div>`:''}
+              ${r.it.level ? `<div class="card__lvl"><span class="card__lvl-dot" style="background:${levelColor(r.it.level)}"></span>
+                 ${r.it.level}/11 · ${esc(LEVELS[r.it.level-1])}</div>`:''}
+              ${r.why.length ? `<ul class="pick__why">${r.why.map(w=>`<li>${esc(w)}</li>`).join('')}</ul>`:''}
+              ${r.warn.length ? `<ul class="pick__warn">${r.warn.map(w=>`<li>${esc(w)}</li>`).join('')}</ul>`:''}
+              <span class="card__more" style="margin-top:12px;display:inline-block">Подробнее</span>
+            </div>
+          </a>`).join('')}
+      </div>
+
+      <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:24px">
+        <button class="btn btn--quiet" id="quizAgain">Пройти заново</button>
+        <a class="btn btn--ghost" href="#/catalog">Весь каталог</a>
+      </div>
+      <p class="muted" style="font-size:13px;margin-top:18px">Онлайн-заказы не принимаются: покупка в магазине,
+        после разговора о содержании.</p>
+    </div>`;
+
+  $('#quizAgain').addEventListener('click', initQuiz);
 }
 
 let catalogState = { cat:'all', q:'' };
@@ -1574,6 +1836,7 @@ const ROUTES = {
   'exposition' : pageExposition,
   'breeding'   : pageBreeding,
   'shops'      : pageShops,
+  'test'       : pageQuiz,
   'about'      : pageAbout,
   'contacts'   : pageContacts
 };
@@ -1595,6 +1858,7 @@ function router(){
 
   if(seg==='catalog') initCatalog();
   if(seg==='shops')   initMap();
+  if(seg==='test')    initQuiz();
   if(seg==='')        initHero();
 
   observeRise();
